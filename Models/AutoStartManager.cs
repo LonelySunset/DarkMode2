@@ -4,7 +4,7 @@ namespace DarkMode_2.Models
 {
     public class AutoStartManager
     {
-        private const string RunRegistryPath = "SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run";
+        private const string RunRegistryPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private const string RunRegistryKeyName = "DarkMode 2";
 
         public static bool IsAutoStartEnabled()
