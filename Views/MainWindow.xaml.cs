@@ -60,21 +60,25 @@ public partial class MainWindow : INavigationWindow
         _themeService = themeServices;
         log.Info("DarkMode GUI运行中");
         InitializeComponent();
+
         // 判断是否为支持的操作系统
         string WinVersion = WindowsVersionHelper.GetWindowsEdition();
-        if(WinVersion != "Windows 10" && WinVersion != "Windows 11")
+        if (WinVersion != "Windows 10" && WinVersion != "Windows 11")
         {
-            MessageBox2.Show(LanguageHandler.GetLocalizedString("MainWindow_Tip1")+$"{WinVersion}", LanguageHandler.GetLocalizedString("MainWindow_Tip2"));
+            MessageBox2.Show(LanguageHandler.GetLocalizedString("MainWindow_Tip1") + $"{WinVersion}", LanguageHandler.GetLocalizedString("MainWindow_Tip2"));
             Application.Current.Shutdown();
             log.Warn("不支持的操作系统");
         }
+
+        //消息队列
+        this._queueService = new QueueService();
         try
         {
             HotkeyManager.Current.AddOrReplace("Start", Key.D, ModifierKeys.Control | ModifierKeys.Alt, OnStart);
         }
         catch
         {
-            MessageBox2.Show( LanguageHandler.GetLocalizedString("MainWindow_Tip3"), LanguageHandler.GetLocalizedString("MainWindow_Tip4"));
+            MessageBox2.Show(LanguageHandler.GetLocalizedString("MainWindow_Tip3"), LanguageHandler.GetLocalizedString("MainWindow_Tip4"));
             log.Warn("快捷键被占用");
         }
 
@@ -85,15 +89,15 @@ public partial class MainWindow : INavigationWindow
 
         RegistryKey appkey = Registry.CurrentUser.OpenSubKey(@"Software\DarkMode2", true);
         //新功能注册表异常排除
-        if(appkey.GetValue("SwitchMouse") == null)
+        if (appkey.GetValue("SwitchMouse") == null)
         {
             RegistryInit.InsertRegistery("SwitchMouse", "false");
         }
-        if(appkey.GetValue("AppVersion") == null)
+        if (appkey.GetValue("AppVersion") == null)
         {
             RegistryInit.InsertRegistery("SwitchMouse", VersionControl.Version());
         }
-        if(appkey.GetValue("InstallUpdate") == null)
+        if (appkey.GetValue("InstallUpdate") == null)
         {
             RegistryInit.InsertRegistery("InstallUpdate", "false");
         }
@@ -111,12 +115,12 @@ public partial class MainWindow : INavigationWindow
         //开启定时器
         timerGetTime.Start();
         //自动更新日出日落时间
-        if(appkey.GetValue("AutoUpdateTime").ToString() != "false" && appkey.GetValue("SunRiseSet").ToString() != "false")
+        if (appkey.GetValue("AutoUpdateTime").ToString() != "false" && appkey.GetValue("SunRiseSet").ToString() != "false")
         {
             AutoUpdataTime();
         }
         //感光模式
-        if(appkey.GetValue("PhotosensitiveMode").ToString() == "true")
+        if (appkey.GetValue("PhotosensitiveMode").ToString() == "true")
         {
             _lightsensor = LightSensor.GetDefault();
             _timer = new DispatcherTimer();
@@ -124,8 +128,8 @@ public partial class MainWindow : INavigationWindow
             _timer.Tick += Timer_Tick;
             _timer.Start();
         }
-        appkey.Close(); 
-        
+        appkey.Close();
+
     }
 
     // 自动检查更新
@@ -159,16 +163,16 @@ public partial class MainWindow : INavigationWindow
     //自动更新日出日落时间
     private void AutoUpdataTime()
     {
-        _queueService.AddMessage(async () => 
+        _queueService.AddMessage(async () =>
         {
             try
             {
-                LocationService locationService = new LocationService();
-                var geoLocator = new Geolocator();
-                var geoPosition = await geoLocator.GetGeopositionAsync();
+                //使用windows自带的位置服务获取当前位置
+                var geoPosition = await new Geolocator().GetGeopositionAsync();
                 var latitude = geoPosition.Coordinate.Point.Position.Latitude;
                 var longitude = geoPosition.Coordinate.Point.Position.Longitude;
-                var locationName = await locationService.GetLocationName(latitude, longitude);
+
+                var locationName = await new LocationService().GetLocationName(latitude, longitude);
                 SunTimeResult result = TimeConverter.GetSunTime(DateTime.Now, longitude, latitude);
                 DateTime date = DateTime.Now;
                 string sunriseTime = result.SunriseTime.ToString("HH:mm");
@@ -203,35 +207,35 @@ public partial class MainWindow : INavigationWindow
         TimeSpan _endLightTime = DateTime.Parse(endLightTime).TimeOfDay;
         DateTime dateTime = Convert.ToDateTime(DateTime.Now.ToString("t"));
         TimeSpan dspNow = dateTime.TimeOfDay;
-        
-            if (key.GetValue("PhotosensitiveMode").ToString() == "false")
+
+        if (key.GetValue("PhotosensitiveMode").ToString() == "false")
+        {
+            if (dspNow > _startLightTime && dspNow < _endLightTime)
             {
-                if (dspNow > _startLightTime && dspNow < _endLightTime)
-                {
-                    //在时间段内
-                    SwitchMode.switchMode("light");
-                    //Console.WriteLine("切换为浅色");
-                }
-                else
-                {
-                    //不在时间段内
-                    SwitchMode.switchMode("dark");
-                    //Console.WriteLine("切换为深色");
-                }
+                //在时间段内
+                SwitchMode.switchMode("light");
+                //Console.WriteLine("切换为浅色");
             }
             else
             {
-                double luxValue = _luxValue;
-                Console.WriteLine(luxValue.ToString());
-                if (luxValue > 17.0)
-                {
-                    SwitchMode.switchMode("light");
-                }
-                else
-                {
-                    SwitchMode.switchMode("dark");
-                }
+                //不在时间段内
+                SwitchMode.switchMode("dark");
+                //Console.WriteLine("切换为深色");
             }
+        }
+        else
+        {
+            double luxValue = _luxValue;
+            Console.WriteLine(luxValue.ToString());
+            if (luxValue > 17.0)
+            {
+                SwitchMode.switchMode("light");
+            }
+            else
+            {
+                SwitchMode.switchMode("dark");
+            }
+        }
     }
 
 
@@ -257,22 +261,17 @@ public partial class MainWindow : INavigationWindow
         NotifyIcon.Visibility = Visibility.Collapsed;
     }
 
-    public Frame GetFrame()
-        => RootFrame;
+    public Frame GetFrame() => RootFrame;
 
-    public INavigation GetNavigation()
-        => RootNavigation;
+    public INavigation GetNavigation() => RootNavigation;
 
-    public bool Navigate(Type pageType)
-        => RootNavigation.Navigate(pageType);
+    public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
 
     public void SetPageService(IPageService pageService) { }
 
-    public void ShowWindow()
-        => Show();
+    public void ShowWindow() => Show();
 
-    public void CloseWindow()
-        => Close();
+    public void CloseWindow() => Close();
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -281,9 +280,6 @@ public partial class MainWindow : INavigationWindow
         _languageHandler = new LanguageHandler(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "i18n"));
         _languageHandler.ChangeLanguage(RegistryInit.GetSavedLanguageCode());
 
-        //消息队列
-        this._queueService = new QueueService();
-
         //隐藏窗口
         this.Hide();
         //自动更新
@@ -291,9 +287,9 @@ public partial class MainWindow : INavigationWindow
         {
             AutoUpdate();
         }
-            
+
         //消息通知
-        
+
         if (key.GetValue("Notification").ToString() == "true")
         {
             ToastHelper.ShowToast("MainWindow_Tip7", "MainWindow_Tip8");
