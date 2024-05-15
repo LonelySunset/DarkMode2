@@ -19,13 +19,18 @@ namespace DarkMode_2.Models
             _httpClient = new HttpClient();
         }
 
+        /// <summary>
+        /// 根据经纬度坐标获取位置地址
+        /// </summary>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <returns></returns>
         public async Task<string> GetLocationName(double latitude, double longitude)
         {
             var coordinate = new GeoCoordinate(latitude, longitude);
 
-            // Build the Bing Maps API request URL with the Chinese language and district-level location information
-            var url = string.Format("https://dev.virtualearth.net/REST/v1/Locations/{0},{1}?o=json&key={2}&c=zh-Hans&inclnb=1&incl=ciso2&ul=39.9,-105.3&lvl=19",
-                coordinate.Latitude, coordinate.Longitude, BingMapsKey);
+            // 使用中文和地区级别的位置信息构建必应地图API请求URL
+            var url = string.Format("https://dev.virtualearth.net/REST/v1/Locations/{0},{1}?o=json&key={2}&c=zh-Hans&inclnb=1&incl=ciso2&ul=39.9,-105.3&lvl=19", coordinate.Latitude, coordinate.Longitude, BingMapsKey);
 
             var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -34,10 +39,7 @@ namespace DarkMode_2.Models
             var options = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                Converters =
-        {
-            new JsonStringEnumConverter()
-        }
+                Converters = { new JsonStringEnumConverter() }
             };
             var locationData = JsonSerializer.Deserialize<LocationData>(json, options);
 

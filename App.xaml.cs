@@ -85,15 +85,10 @@ public partial class App
 
     private async void OnStartup(object sender, StartupEventArgs e)
     {
+        //日志配置
         XmlConfigurator.Configure();
-        string logDirectory = Path.Combine(Path.GetTempPath(), "DarkMode2", "logs");
 
-        if (!Directory.Exists(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
         //启动程序入口
-
         await _host.StartAsync();
 
     }
